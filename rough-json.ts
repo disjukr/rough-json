@@ -135,7 +135,7 @@ function expectString(ctx: Context): RoughString {
     ++end;
     if (ch === '"') break;
   }
-  if (end >= ctx.text.length) throw new InvalidJsonError();
+  if (end > ctx.text.length || ctx.text[end - 1] !== '"') throw new InvalidJsonError();
   const text = ctx.text.slice(ctx.pos, end);
   ctx.pos = end;
   return { type: "string", text };
