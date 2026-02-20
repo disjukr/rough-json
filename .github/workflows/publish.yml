@@ -25,28 +25,23 @@ jobs:
           node-version: 22
           registry-url: https://registry.npmjs.org
 
-      - name: Validate tag version
+      - name: Apply tag version to manifests
         shell: bash
         run: |
           TAG_VERSION="${GITHUB_REF_NAME#v}"
-          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
-          JSR_VERSION="$(node -p "require('./deno.json').version")"
+          export TAG_VERSION
+          node -e "const fs=require('node:fs'); const files=['package.json','deno.json']; for (const file of files) { const json=JSON.parse(fs.readFileSync(file,'utf8')); json.version=process.env.TAG_VERSION; fs.writeFileSync(file, JSON.stringify(json, null, 2)+'\\n'); }"
 
-          if [ "$TAG_VERSION" != "$PACKAGE_VERSION" ]; then
-            echo "Tag version ($TAG_VERSION) does not match package.json version ($PACKAGE_VERSION)."
-            exit 1
-          fi
-
-          if [ "$TAG_VERSION" != "$JSR_VERSION" ]; then
-            echo "Tag version ($TAG_VERSION) does not match deno.json version ($JSR_VERSION)."
-            exit 1
-          fi
+          echo "Set package.json and deno.json version to ${TAG_VERSION}."
 
       - name: Install dependencies
         run: npm ci
 
       - name: Verify project
         run: npm run verify
+
+      - name: Ensure build artifacts are up to date
+        run: npm run build
 
       - name: Publish to npm (trusted publishing)
         run: npm publish --provenance --access public
@@ -68,16 +63,14 @@ jobs:
         with:
           node-version: 22
 
-      - name: Validate tag version
+      - name: Apply tag version to manifests
         shell: bash
         run: |
           TAG_VERSION="${GITHUB_REF_NAME#v}"
-          JSR_VERSION="$(node -p "require('./deno.json').version")"
+          export TAG_VERSION
+          node -e "const fs=require('node:fs'); const files=['package.json','deno.json']; for (const file of files) { const json=JSON.parse(fs.readFileSync(file,'utf8')); json.version=process.env.TAG_VERSION; fs.writeFileSync(file, JSON.stringify(json, null, 2)+'\\n'); }"
 
-          if [ "$TAG_VERSION" != "$JSR_VERSION" ]; then
-            echo "Tag version ($TAG_VERSION) does not match deno.json version ($JSR_VERSION)."
-            exit 1
-          fi
+          echo "Set package.json and deno.json version to ${TAG_VERSION}."
 
       - name: Publish to JSR
         run: npx jsr publish
